@@ -1,0 +1,111 @@
+package com.pract;
+
+import java.awt.Dimension;
+import java.awt.EventQueue;
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfRect;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.objdetect.CascadeClassifier;
+import org.opencv.videoio.VideoCapture;
+
+public class Camera extends JFrame {
+
+    private JPanel cameraScreen;
+    private JButton btnCapture;
+    private BufferedImage image;
+    private VideoCapture capture;
+    private CascadeClassifier faceDetector;
+
+    public Camera() {
+        // Design UI
+        setLayout(null);
+
+        cameraScreen = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (image != null) {
+                    g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+                }
+            }
+        };
+        cameraScreen.setBounds(0, 0, 640, 480);
+        add(cameraScreen);
+
+        btnCapture = new JButton("Capture");
+        btnCapture.setBounds(300, 480, 80, 40);
+        add(btnCapture);
+
+        setSize(new Dimension(640, 560));
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setVisible(true);
+
+        // Initialize OpenCV components
+        capture = new VideoCapture(0);  // Default camera
+        faceDetector = new CascadeClassifier("path/to/haarcascade_frontalface_default.xml");
+
+        // Start the camera thread
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    Mat frame = new Mat();
+                    if (capture.read(frame)) {
+                        detectAndDisplay(frame);
+                        repaint();
+                    }
+                }
+            }
+        }).start();
+    }
+
+    private void detectAndDisplay(Mat frame) {
+        MatOfRect faceDetections = new MatOfRect();
+        faceDetector.detectMultiScale(frame, faceDetections, 1.1, 2, 0, new Size(30, 30), new Size());
+
+        for (Rect rect : faceDetections.toArray()) {
+            Imgproc.rectangle(frame, rect.tl(), rect.br(), new Scalar(0, 255, 0), 3);
+        }
+
+        image = matToBufferedImage(frame);
+    }
+
+    private BufferedImage matToBufferedImage(Mat matrix) {
+        int type = BufferedImage.TYPE_BYTE_GRAY;
+        if (matrix.channels() > 1) {
+            type = BufferedImage.TYPE_3BYTE_BGR;
+        }
+        int bufferSize = matrix.channels() * matrix.cols() * matrix.rows();
+        byte[] b = new byte[bufferSize];
+        matrix.get(0, 0, b); // Get all the pixels
+        BufferedImage image = new BufferedImage(matrix.cols(), matrix.rows(), type);
+        final byte[] targetPixels = ((java.awt.image.DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        System.arraycopy(b, 0, targetPixels, 0, b.length);
+        return image;
+    }
+
+    public static void main(String[] args) {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+        System.out.println("OpenCV loaded successfully.");
+
+        EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                Camera camera = new Camera();
+            }
+        });
+    }
+}

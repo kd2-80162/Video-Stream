@@ -1,0 +1,9 @@
+import java.awt.image.BufferdImage;
+package com.pract;
+
+public class imgProcessor {
+
+	public BufferedImage toBufferImage(Mat matrix) {
+		int type=BufferedImage.TYPE_BYTE_GRAY;
+	}
+}

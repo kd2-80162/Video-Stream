@@ -1,0 +1,9 @@
+package com.pract;
+
+public class Camera {
+
+	public static void main(String[] args) {
+
+	}
+
+}
